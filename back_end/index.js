@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 var Mutex = require('async-mutex').Mutex;
 const {generatePassword} = require('./helper_methods');
-const e = require('express');
+const crypto = require('crypto');
 const mutex = new Mutex();
 
 //db connection
@@ -140,7 +140,8 @@ app.post('/accountlist',(req,res)=>{
                     let tempObj = {accountname: result[index].accountname, accountpassword: result[index].accountpassword};
                     processList.push(tempObj);
                 }
-                res.send(processList);
+                let jsonProcessList = JSON.stringify(processList)
+                res.send(jsonProcessList);
             }
         });
     }else{
@@ -203,7 +204,12 @@ app.post('/updateaccount', (req,res)=>{
         `;
         db.query(sql, (err, result)=>{
             if(err){
-                console.log(err);
+                if(err.errno === 1062){
+                    res.send('account name already exists, please try another one.');
+                }else{
+                    console.log(err);
+                }
+                
             }else{
                 console.log(result);
                 if(result.affectedRows === 0){
