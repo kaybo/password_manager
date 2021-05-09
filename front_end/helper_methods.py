@@ -59,12 +59,11 @@ def print_list(account_list):
         print('Account Name: ', obj['accountname'], ' Password: ', obj['accountpassword'])
         # print(key)
 
-def delete_account(host, username, password, account_name, account_password):
+def delete_account(host, username, password, account_name):
     data = {
         'username': username,
         'password': password,
         'accountname': account_name,
-        'accountpassword': account_password
     }
     URL = host + '/deleteaccount'
     r = requests.post(url = URL, data = data)

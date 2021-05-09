@@ -52,9 +52,8 @@ while True:
 	elif user_input == 5:
 		if len(saved_password) > 0 and len(saved_password) > 0:
 			remove_account_name = str(input('input account name: '))
-			remove_account_password = str(input('input account password: '))
-			respond = helper_methods.delete_account(host, saved_username, saved_password, remove_account_name, remove_account_password)
-			print(respsond)
+			respond = helper_methods.delete_account(host, saved_username, saved_password, remove_account_name)
+			print(respond)
 		else:
 			print('\nPlease login first\n')
 		

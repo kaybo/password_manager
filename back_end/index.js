@@ -3,8 +3,7 @@ const mysql = require('mysql');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 var Mutex = require('async-mutex').Mutex;
-const {generatePassword} = require('./helper_methods');
-const crypto = require('crypto');
+const {encrypt, decrypt} = require('./helper_methods')
 const mutex = new Mutex();
 
 //db connection
@@ -44,6 +43,7 @@ db.query(sqlStart, (err,result)=>{
 });
 
 let userMap = new Map();
+
 
 
 //essentially, a session validation to make sure logged in users can access the api calls 
@@ -137,7 +137,7 @@ app.post('/accountlist',(req,res)=>{
                 let processList = [];
                 for(let index = 0; index < result.length; index++){
                     console.log(result[index]);
-                    let tempObj = {accountname: result[index].accountname, accountpassword: result[index].accountpassword};
+                    let tempObj = {accountname: decrypt(result[index].accountname), accountpassword: decrypt(result[index].accountpassword)};
                     processList.push(tempObj);
                 }
                 let jsonProcessList = JSON.stringify(processList)
@@ -173,13 +173,18 @@ app.post('/createaccount', (req,res)=>{
                 if(flag === true){
                     res.send('Account names cannot be the same, try another account name');
                 }else{
+                    let encUser = encrypt(req.body.accountname);
+                    let encPass = encrypt(req.body.accountpassword)
                     sql = 
                     `
-                    INSERT INTO account VALUES('${req.body.username}','${req.body.accountname}', '${req.body.accountpassword}');
+                    INSERT INTO account VALUES('${req.body.username}','${encUser}', '${encPass}');
                     `;
                     db.query(sql, (err,result)=>{
                         if(err){
                             console.log(err);
+                            if(err.errno === 1062){
+                                res.send('account name already exists')
+                            }
                         }else{
                             res.send('New account name created');
                         }
@@ -196,11 +201,16 @@ app.post('/createaccount', (req,res)=>{
 //updates the specified account tied to the user
 app.post('/updateaccount', (req,res)=>{
     if(validateUser(req.body.username, req.body.password)){
+        let newEncAccount = encrypt(req.body.newaccountname)
+        let newEncAccountPassword = encrypt(req.body.newaccountpassword);
+
+        let oldEncAccount = encrypt(req.body.accountname);
+
         let sql =
         `
         UPDATE account
-        SET account.accountname = '${req.body.newaccountname}', accountpassword = '${req.body.newaccountpassword}'
-        WHERE account.accountname = '${req.body.accountname}' AND account.associateusername = '${req.body.username}'
+        SET account.accountname = '${newEncAccount}', accountpassword = '${newEncAccountPassword}'
+        WHERE account.accountname = '${oldEncAccount}' AND account.associateusername = '${req.body.username}'
         `;
         db.query(sql, (err, result)=>{
             if(err){
@@ -228,10 +238,12 @@ app.post('/updateaccount', (req,res)=>{
 //deletes the specifiy account tied to the user
 app.post('/deleteaccount', (req,res)=>{
     if(validateUser(req.body.username, req.body.password)){
+        let encUser = encrypt(req.body.accountname);
         let sql = 
+
         `
         DELETE FROM account
-        WHERE account.accountname = '${req.body.accountname}' AND account.associateusername = '${req.body.username}'
+        WHERE account.accountname = '${encUser}' AND account.associateusername = '${req.body.username}'
         `;
         db.query(sql, (err, result)=>{
             if(err){
